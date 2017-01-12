@@ -76,8 +76,11 @@ export class Ng2Datetime {
       dateStr = dateStr + Ng2Datetime.addDSTOffset(dateStr);
       return Ng2Datetime.parseFromDefaultFormat(dateStr);
     } else if (dateFormat) {
-      let date = moment(dateStr, dateFormat).toDate();
-      if (isNaN(date.getTime())) { // if dateFormat and dateStr does not match
+      let date = new Date();
+      let dateMoment = moment(dateStr, dateFormat);
+      if (dateMoment.isValid()) {
+        date = dateMoment.toDate();
+      } else if (isNaN(date.getTime())) { // if dateFormat and dateStr does not match
         date = moment(dateStr).toDate(); //parse as ISO format
       }
       return date;

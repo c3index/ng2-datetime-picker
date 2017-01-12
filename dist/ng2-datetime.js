@@ -35,10 +35,18 @@ var Ng2Datetime = (function () {
             return Ng2Datetime.parseFromDefaultFormat(dateStr);
         }
         else if (dateFormat) {
-            var date = moment(dateStr, dateFormat).toDate();
-            if (isNaN(date.getTime())) {
+            var date = new Date();
+            var dateMoment = moment(dateStr, dateFormat);
+            if (dateMoment.isValid()) {
+                date = dateMoment.toDate();
+            }
+            else if (isNaN(date.getTime())) {
                 date = moment(dateStr).toDate(); //parse as ISO format
             }
+            return date;
+        }
+        else {
+            var date = moment(dateStr, 'YYYY-MM-DD HH:mm').toDate();
             return date;
         }
     };
@@ -142,7 +150,7 @@ var Ng2Datetime = (function () {
         { type: core_1.Injectable },
     ];
     /** @nocollapse */
-    Ng2Datetime.ctorParameters = [];
+    Ng2Datetime.ctorParameters = function () { return []; };
     return Ng2Datetime;
 }());
 exports.Ng2Datetime = Ng2Datetime;
