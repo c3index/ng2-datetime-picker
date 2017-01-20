@@ -121,6 +121,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	            return date;
 	        }
+	        else {
+	            var date = moment(dateStr, 'YYYY-MM-DD HH:mm').toDate();
+	            return date;
+	        }
 	    };
 	    //remove timezone
 	    Ng2Datetime.removeTimezone = function (dateStr) {
@@ -174,6 +178,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	        var monthData = {
 	            year: year,
 	            month: month,
+	            weekends: Ng2Datetime.weekends,
+	            firstDayOfWeek: Ng2Datetime.firstDayOfWeek,
 	            fullName: Ng2Datetime.months[month].fullName,
 	            shortName: Ng2Datetime.months[month].shortName,
 	            localizedDaysOfWeek: localizedDaysOfWeek,
@@ -184,14 +190,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return monthData;
 	    };
 	    Ng2Datetime.days = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
+	    Ng2Datetime.weekends = [0, 6];
 	    Ng2Datetime.daysOfWeek = typeof moment === 'undefined' ? [
-	        { fullName: 'Sunday', shortName: 'Su', weekend: true },
+	        { fullName: 'Sunday', shortName: 'Su' },
 	        { fullName: 'Monday', shortName: 'Mo' },
 	        { fullName: 'Tuesday', shortName: 'Tu' },
 	        { fullName: 'Wednesday', shortName: 'We' },
 	        { fullName: 'Thursday', shortName: 'Th' },
 	        { fullName: 'Friday', shortName: 'Fr' },
-	        { fullName: 'Saturday', shortName: 'Sa', weekend: true }
+	        { fullName: 'Saturday', shortName: 'Sa' }
 	    ] : moment.weekdays().map(function (el, index) {
 	        return {
 	            fullName: el,
@@ -309,8 +316,22 @@ return /******/ (function(modules) { // webpackBootstrap
 	        enumerable: true,
 	        configurable: true
 	    });
+	    Ng2DatetimePickerComponent.prototype.isWeekend = function (dayNum, month) {
+	        if (typeof month === 'undefined') {
+	            return ng2_datetime_1.Ng2Datetime.weekends.indexOf(dayNum % 7) !== -1; //weekday index
+	        }
+	        else {
+	            var weekday = this.toDate(dayNum, month).getDay();
+	            return ng2_datetime_1.Ng2Datetime.weekends.indexOf(weekday) !== -1;
+	        }
+	    };
 	    Ng2DatetimePickerComponent.prototype.initDatetime = function (date) {
-	        this.selectedDate = date || this.defaultValue || new Date();
+	        if (date) {
+	            this.selectedDate = date.getTime() ? date : new Date();
+	        }
+	        else {
+	            this.selectedDate = this.defaultValue || new Date();
+	        }
 	        this.hour = this.selectedDate.getHours();
 	        this.minute = this.selectedDate.getMinutes();
 	        this.monthData = this.ng2Datetime.getMonthData(this.year, this.month);
@@ -326,12 +347,16 @@ return /******/ (function(modules) { // webpackBootstrap
 	     * @param date {Date}
 	     */
 	    Ng2DatetimePickerComponent.prototype.selectDateTime = function (date) {
+	        var _this = this;
 	        this.selectedDate = date || this.selectedDate;
 	        if (this.isDateDisabled(this.selectedDate)) {
 	            return false;
 	        }
 	        this.selectedDate.setHours(parseInt('' + this.hour || '0', 10));
 	        this.selectedDate.setMinutes(parseInt('' + this.minute || '0', 10));
+	        this.selectedDate.toString = function () {
+	            return ng2_datetime_1.Ng2Datetime.formatDate(_this.selectedDate, _this.dateFormat, _this.dateOnly);
+	        };
 	        this.selected$.emit(this.selectedDate);
 	        this.closing$.emit(true);
 	    };
@@ -357,6 +382,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 	        return false;
 	    };
+	    __decorate([
+	        core_1.Input('date-format'), 
+	        __metadata('design:type', String)
+	    ], Ng2DatetimePickerComponent.prototype, "dateFormat", void 0);
 	    __decorate([
 	        core_1.Input('date-only'), 
 	        __metadata('design:type', Boolean)
@@ -429,7 +458,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        core_1.Component({
 	            providers: [ng2_datetime_1.Ng2Datetime],
 	            selector: 'ng2-datetime-picker',
-	            template: "\n<div class=\"ng2-datetime-picker\" tabindex=\"0\">\n\n  <!-- Month - Year  -->\n  <div class=\"month\" *ngIf=\"!timeOnly\">\n    <b class=\"prev_next prev\" (click)=\"updateMonthData(-12)\">&laquo;</b>\n    <b class=\"prev_next prev\" (click)=\"updateMonthData(-1)\">&lsaquo;</b>\n     <span title=\"{{monthData?.fullName}}\">\n           {{monthData?.shortName}}\n     </span>\n    {{monthData.year}}\n    <b class=\"prev_next next\" (click)=\"updateMonthData(+12)\">&raquo;</b>\n    <b class=\"prev_next next\" (click)=\"updateMonthData(+1)\">&rsaquo;</b>\n  </div>\n\n  <!-- Date -->\n  <div class=\"days\" *ngIf=\"!timeOnly\">\n\n    <!-- Su Mo Tu We Th Fr Sa -->\n    <div class=\"day-of-week\"\n         *ngFor=\"let dayOfWeek of monthData.localizedDaysOfWeek\"\n         [ngClass]=\"{weekend: dayOfWeek.weekend}\"\n         title=\"{{dayOfWeek.fullName}}\">\n      {{dayOfWeek.shortName}}\n    </div>\n\n    <!-- Fill up blank days for this month -->\n    <div *ngIf=\"monthData.leadingDays.length < 7\">\n      <div class=\"day\" *ngFor=\"let dayNum of monthData.leadingDays\"\n           [ngClass]=\"{weekend: [0,6].indexOf(toDate(dayNum, monthData.month-1).getDay()) !== -1}\">\n        {{dayNum}}\n      </div>\n    </div>\n\n    <div class=\"day\"\n         *ngFor=\"let dayNum of monthData.days\"\n         (click)=\"selectDateTime(toDate(dayNum))\"\n         title=\"{{monthData.year}}-{{monthData.month+1}}-{{dayNum}}\"\n         [ngClass]=\"{\n           selectable: !isDateDisabled(toDate(dayNum)),\n           selected:\n             toDate(dayNum).getTime() === toDateOnly(selectedDate).getTime(),\n           today:\n             toDate(dayNum).getTime() === today.getTime(),\n           weekend:\n             [0,6].indexOf(toDate(dayNum).getDay()) !== -1\n         }\">\n      {{dayNum}}\n    </div>\n\n    <!-- Fill up blank days for this month -->\n    <div *ngIf=\"monthData.trailingDays.length < 7\">\n      <div class=\"day\"\n           *ngFor=\"let dayNum of monthData.trailingDays\"\n           [ngClass]=\"{weekend: [0,6].indexOf(toDate(dayNum, monthData.month+1).getDay()) !== -1}\">\n        {{dayNum}}\n      </div>\n    </div>\n  </div>\n\n  <!-- Time -->\n  <div class=\"days\" id=\"time\" *ngIf=\"!dateOnly\">\n    <label class=\"timeLabel\">Time:</label>\n    <span class=\"timeValue\">\n      {{(\"0\"+hour).slice(-2)}} : {{(\"0\"+minute).slice(-2)}}\n    </span><br/>\n    <label class=\"hourLabel\">Hour:</label>\n    <input #hours class=\"hourInput\"\n           (change)=\"selectDateTime()\"\n           type=\"range\"\n           min=\"{{minHour || 0}}\"\n           max=\"{{maxHour || 23}}\"\n           [(ngModel)]=\"hour\" />\n    <label class=\"minutesLabel\">Min:</label>\n    <input #minutes class=\"minutesInput\"\n           step=\"{{minuteStep}}\"\n           (change)=\"selectDateTime()\"\n           type=\"range\" min=\"0\" max=\"59\" range=\"10\" [(ngModel)]=\"minute\"/>\n  </div>\n</div>\n  ",
+	            template: "\n<div class=\"ng2-datetime-picker\" tabindex=\"0\">\n\n  <!-- Month - Year  -->\n  <div class=\"month\" *ngIf=\"!timeOnly\">\n    <b class=\"prev_next prev\" (click)=\"updateMonthData(-12)\">&laquo;</b>\n    <b class=\"prev_next prev\" (click)=\"updateMonthData(-1)\">&lsaquo;</b>\n     <span title=\"{{monthData?.fullName}}\">\n           {{monthData?.shortName}}\n     </span>\n    {{monthData.year}}\n    <b class=\"prev_next next\" (click)=\"updateMonthData(+12)\">&raquo;</b>\n    <b class=\"prev_next next\" (click)=\"updateMonthData(+1)\">&rsaquo;</b>\n  </div>\n\n  <!-- Date -->\n  <div class=\"days\" *ngIf=\"!timeOnly\">\n\n    <!-- Su Mo Tu We Th Fr Sa -->\n    <div class=\"day-of-week\"\n         *ngFor=\"let dayOfWeek of monthData.localizedDaysOfWeek; let ndx=index\"\n         [class.weekend]=\"isWeekend(ndx + monthData.firstDayOfWeek)\"\n         title=\"{{dayOfWeek.fullName}}\">\n      {{dayOfWeek.shortName}}\n    </div>\n\n    <!-- Fill up blank days for this month -->\n    <div *ngIf=\"monthData.leadingDays.length < 7\">\n      <div class=\"day\" *ngFor=\"let dayNum of monthData.leadingDays\">\n        {{dayNum}}\n      </div>\n    </div>\n\n    <div class=\"day\"\n         *ngFor=\"let dayNum of monthData.days\"\n         (click)=\"selectDateTime(toDate(dayNum))\"\n         title=\"{{monthData.year}}-{{monthData.month+1}}-{{dayNum}}\"\n         [ngClass]=\"{\n           selectable: !isDateDisabled(toDate(dayNum)),\n           selected: toDate(dayNum).getTime() === toDateOnly(selectedDate).getTime(),\n           today: toDate(dayNum).getTime() === today.getTime(),\n           weekend: isWeekend(dayNum, monthData.month)\n         }\">\n      {{dayNum}}\n    </div>\n\n    <!-- Fill up blank days for this month -->\n    <div *ngIf=\"monthData.trailingDays.length < 7\">\n      <div class=\"day\"\n           *ngFor=\"let dayNum of monthData.trailingDays\">\n        {{dayNum}}\n      </div>\n    </div>\n  </div>\n\n  <!-- Time -->\n  <div class=\"days\" id=\"time\" *ngIf=\"!dateOnly\">\n    <label class=\"timeLabel\">Time:</label>\n    <span class=\"timeValue\">\n      {{(\"0\"+hour).slice(-2)}} : {{(\"0\"+minute).slice(-2)}}\n    </span><br/>\n    <label class=\"hourLabel\">Hour:</label>\n    <input #hours class=\"hourInput\"\n           (change)=\"selectDateTime()\"\n           type=\"range\"\n           min=\"{{minHour || 0}}\"\n           max=\"{{maxHour || 23}}\"\n           [(ngModel)]=\"hour\" />\n    <label class=\"minutesLabel\">Min:</label>\n    <input #minutes class=\"minutesInput\"\n           step=\"{{minuteStep}}\"\n           (change)=\"selectDateTime()\"\n           type=\"range\" min=\"0\" max=\"59\" range=\"10\" [(ngModel)]=\"minute\"/>\n  </div>\n</div>\n  ",
 	            styles: [
 	                "\n @keyframes slideDown {\n  0% {\n    transform:  translateY(-10px);\n  }\n  100% {\n    transform: translateY(0px);\n  }\n}\n\n.ng2-datetime-picker-wrapper {\n  position: relative;\n}\n\n.ng2-datetime-picker {\n    color: #333;\n    outline-width: 0;\n    font: normal 14px sans-serif;\n    border: 1px solid #ddd;\n    display: inline-block;\n    background: #fff;\n    animation: slideDown 0.1s ease-in-out;\n    animation-fill-mode: both;\n}\n.ng2-datetime-picker > .month {\n    text-align: center;\n    line-height: 22px;\n    padding: 10px;\n    background: #fcfcfc;\n    text-transform: uppercase;\n    font-weight: bold;\n    border-bottom: 1px solid #ddd;\n    position: relative;\n}\n.ng2-datetime-picker > .month > .prev_next {\n    color: #555;\n    display: block;\n    font: normal 24px sans-serif;\n    outline: none;\n    background: transparent;\n    border: none;\n    cursor: pointer;\n    width: 15px;\n    text-align: center;\n}\n.ng2-datetime-picker > .month > .prev_next:hover {\n  background-color: #333;\n  color: #fff;\n}\n.ng2-datetime-picker > .month > .prev_next.prev {\n  float: left;\n}\n.ng2-datetime-picker > .month > .prev_next.next {\n  float: right;\n}\n.ng2-datetime-picker > .days {\n    width: 210px; /* 30 x 7 */\n    margin: 10px;\n    text-align: center;\n}\n.ng2-datetime-picker > .days .day-of-week,\n.ng2-datetime-picker > .days .day {\n    box-sizing: border-box;\n    -moz-box-sizing: border-box;\n    border: 1px solid transparent;\n    width: 30px;\n    line-height: 28px;\n    float: left;\n}\n.ng2-datetime-picker > .days .day-of-week {\n    font-weight: bold;\n}\n.ng2-datetime-picker > .days .day-of-week.weekend {\n    color: #ccc;\n    background-color: inherit;\n}\n.ng2-datetime-picker > .days .day:not(.selectable) {\n    color: #ccc;\n    cursor: default;\n}\n.ng2-datetime-picker > .days .weekend {\n    color: #ccc;\n    background-color: #eee;\n}\n.ng2-datetime-picker > .days .day.selectable  {\n    cursor: pointer;\n}\n.ng2-datetime-picker > .days .day.selected {\n    background: gray;\n    color: #fff;\n}\n.ng2-datetime-picker > .days .day:not(.selected).selectable:hover {\n    background: #eee;\n}\n.ng2-datetime-picker > .days:after {\n    content: '';\n    display: block;\n    clear: left;\n    height: 0;\n}\n.ng2-datetime-picker .hourLabel,\n.ng2-datetime-picker .minutesLabel {\n    display: inline-block;\n    width: 40px;\n    text-align: right;\n}\n.ng2-datetime-picker input[type=range] {\n    width: 200px;\n}\n  "
 	            ],
@@ -481,10 +510,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	        this.viewContainerRef = viewContainerRef;
 	        this.parent = parent;
 	        this.ngModelChange = new core_1.EventEmitter();
+	        this.valueChanged = new core_1.EventEmitter();
 	        /* input element string value is changed */
-	        this.valueChanged = function (date) {
+	        this.inputElValueChanged = function (date) {
 	            _this.setInputElDateValue(date);
-	            _this.el.value = _this.getFormattedDateStr();
+	            _this.el.value = date.toString();
 	            if (_this.ctrl) {
 	                _this.ctrl.patchValue(_this.el.value);
 	            }
@@ -493,6 +523,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	                _this.ngModel.toString = function () { return _this.el.value; };
 	                _this.ngModelChange.emit(_this.ngModel);
 	            }
+	        };
+	        this.dateSelected = function (date) {
+	            _this.el.tagName === 'INPUT' && _this.inputElValueChanged(date);
+	            _this.valueChanged.emit(date);
 	        };
 	        this.hideDatetimePicker = function (event) {
 	            if (_this.componentRef) {
@@ -519,6 +553,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	        };
 	        this.el = this.viewContainerRef.element.nativeElement;
 	    }
+	    /**
+	     * convert defaultValue, minDate, maxDate, minHour, and maxHour to proper types
+	     */
 	    Ng2DatetimePickerDirective.prototype.normalizeInput = function () {
 	        if (this.defaultValue && typeof this.defaultValue === 'string') {
 	            var d = ng2_datetime_1.Ng2Datetime.parseDate(this.defaultValue);
@@ -578,7 +615,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            }
 	        }
 	        this.normalizeInput();
-	        //wrap this element with a <div> tag, so that we can position dynamic elememnt correctly
+	        //wrap this element with a <div> tag, so that we can position dynamic element correctly
 	        var wrapper = document.createElement("div");
 	        wrapper.className = 'ng2-datetime-picker-wrapper';
 	        this.el.parentElement.insertBefore(wrapper, this.el.nextSibling);
@@ -587,7 +624,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        document.body.addEventListener('click', this.hideDatetimePicker);
 	        this.el.addEventListener('keyup', this.keyEventListener);
 	        setTimeout(function () {
-	            _this.valueChanged(_this.el.value);
+	            _this.el.tagName === 'INPUT' && _this.inputElValueChanged(_this.el.value);
 	            if (_this.ctrl) {
 	                _this.ctrl.markAsPristine();
 	            }
@@ -639,6 +676,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        this.ng2DatetimePickerEl.addEventListener('keyup', this.keyEventListener);
 	        var component = this.componentRef.instance;
 	        component.defaultValue = this.defaultValue;
+	        component.dateFormat = this.dateFormat;
 	        component.dateOnly = this.dateOnly;
 	        component.timeOnly = this.timeOnly;
 	        component.minuteStep = this.minuteStep;
@@ -650,7 +688,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        component.firstDayOfWeek = this.firstDayOfWeek;
 	        component.initDatetime(this.el['dateValue']);
 	        this.styleDatetimePicker();
-	        component.selected$.subscribe(this.valueChanged);
+	        component.selected$.subscribe(this.dateSelected);
 	        component.closing$.subscribe(function () {
 	            _this.closeOnSelect !== "false" && _this.hideDatetimePicker();
 	        });
@@ -690,12 +728,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	        });
 	    };
 	    ;
-	    /**
-	     *  returns toString function of date object
-	     */
-	    Ng2DatetimePickerDirective.prototype.getFormattedDateStr = function () {
-	        return ng2_datetime_1.Ng2Datetime.formatDate(this.el['dateValue'], this.dateFormat, this.dateOnly);
-	    };
 	    Ng2DatetimePickerDirective.prototype.getDate = function (arg) {
 	        var date = arg;
 	        if (typeof arg === 'string') {
@@ -763,6 +795,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	        core_1.Output('ngModelChange'), 
 	        __metadata('design:type', Object)
 	    ], Ng2DatetimePickerDirective.prototype, "ngModelChange", void 0);
+	    __decorate([
+	        core_1.Output('valueChanged'), 
+	        __metadata('design:type', Object)
+	    ], Ng2DatetimePickerDirective.prototype, "valueChanged", void 0);
 	    Ng2DatetimePickerDirective = __decorate([
 	        core_1.Directive({
 	            selector: '[ng2-datetime-picker]',
